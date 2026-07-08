@@ -1,0 +1,217 @@
+// This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © TJ_667
+// Modified: Pine v6. Explicit per-session timezones; market time for all sessions.
+// v6 fixes: time() int results wrapped to real booleans (no implicit int/float->bool cast);
+//           daily reset uses an explicit bool condition.
+
+//@version=6
+indicator('RTH Session VWAP', 'RTH Session VWAP', true)
+
+// ---------- Functions ---------- //
+
+computeVWAP(src, isNewPeriod) =>
+	var float sumSrcVol = na
+	var float sumVol = na
+    var float sumSrcSrcVol = na
+
+	sumSrcVol := isNewPeriod ? src * volume : src * volume + sumSrcVol[1]
+	sumVol := isNewPeriod ? volume : volume + sumVol[1]
+	sumSrcSrcVol := isNewPeriod ? volume * math.pow(src, 2) : volume * math.pow(src, 2) + sumSrcSrcVol[1]
+
+	_vwap = sumSrcVol / sumVol
+	variance = sumSrcSrcVol / sumVol - math.pow(_vwap, 2)
+	variance := variance < 0 ? 0 : variance
+	stDev = math.sqrt(variance)
+
+	[_vwap, stDev]
+
+compute_stDEV(_vwap, stDev, stDevMultiplier_1, stDevMultiplier_2) =>
+    upperBand_2 = _vwap + stDev * stDevMultiplier_2
+    upperBand_1 = _vwap + stDev * stDevMultiplier_1
+    lowerBand_1 = _vwap - stDev * stDevMultiplier_1
+    lowerBand_2 = _vwap - stDev * stDevMultiplier_2
+    [upperBand_2, upperBand_1, lowerBand_1, lowerBand_2]
+
+f_drawLabel(_x, _y, _text, _textcolor, _style, _size) =>
+    var _label = label.new(x=_x, y=_y, text=_text, textcolor=_textcolor, style=_style, size=_size, xloc=xloc.bar_time)
+    label.set_xy(_label, _x, _y)
+
+//-------------------- Inputs --------------------//
+
+showvS = input(true, 'Show Session VWAPs (master)', group = 'Display', display = display.none)
+showAsia = input(false, 'Show Asia VWAP', group = 'Display', display = display.none)
+showLondon = input(false, 'Show London VWAP', group = 'Display', display = display.none)
+showNY = input(true, 'Show NY VWAP', group = 'Display', display = display.none)
+showStd_S = input(false, 'Show Session Std Dev Bands', group = 'Display', display = display.none)
+showvD = input(false, 'Show Daily VWAP', group = 'Display', display = display.none)
+show24h = input(true, 'Show 24h VWAP', group = 'Display', display = display.none)
+showStd_D = input(false, 'Show Daily Std Dev Bands', group = 'Display', display = display.none)
+showD_label = input(false, 'Show Daily Labels', group = 'Display', display = display.none)
+showS_label = input(false, 'Show Session Labels', group = 'Display', display = display.none)
+
+stDevMultiplier_1 = input(1.0, "StDev mult 1", group = 'Calc', display = display.none)
+stDevMultiplier_2 = input(2.0, "StDev mult 2", group = 'Calc', display = display.none)
+src = input(hlc3, "VWAP Source", group = 'Calc', display = display.none)
+off_mult = input(10, 'Label offset', group = 'Calc', display = display.none)
+
+var DEFAULT_LABEL_SIZE = size.small
+var DEFAULT_LABEL_STYLE = label.style_none
+ll_offset = timenow + math.round(ta.change(time) * off_mult)
+
+// Per-session timezones — each session in its own market clock (auto DST). You type natural hours.
+tzAsia   = input.string('Asia/Tokyo',       'Asia Timezone',   group = 'Sessions', display = display.none)
+tzLondon = input.string('Europe/London',    'London Timezone', group = 'Sessions', display = display.none)
+tzNY     = input.string('America/New_York', 'NY Timezone',     group = 'Sessions', display = display.none)
+
+Asia_session_full   = input.session('0900-1500', 'Asia Session',   group = 'Sessions', display = display.none)  // Tokyo local
+London_session_full = input.session('0800-1630', 'London Session', group = 'Sessions', display = display.none)  // London local
+NY_session_full     = input.session('0930-1600', 'NY Session',     group = 'Sessions', display = display.none)  // New York RTH
+
+// Raw session times (int or na)
+tAsia   = time(timeframe.period, Asia_session_full   + ':1234567', tzAsia)
+tLondon = time(timeframe.period, London_session_full + ':1234567', tzLondon)
+tNY     = time(timeframe.period, NY_session_full     + ':1234567', tzNY)
+
+// v6: derive real booleans. inX = currently in session. newX = first bar of the session (reset point).
+inAsia   = not na(tAsia)
+inLondon = not na(tLondon)
+inNY     = not na(tNY)
+
+newAsia   = inAsia   and na(tAsia[1])
+newLondon = inLondon and na(tLondon[1])
+newNY     = inNY     and na(tNY[1])
+
+//-------------------- VWAP Calculations --------------------//
+
+// Asia
+p_Asia = hlc3 * volume
+p_Asia := newAsia ? hlc3 * volume : p_Asia[1] + hlc3 * volume
+
+vol_Asia = 0.0
+vol_Asia := newAsia ? volume : vol_Asia[1] + volume
+
+v_Asia = p_Asia / vol_Asia
+mv_Asia = v_Asia
+A_vwap = mv_Asia
+
+Sn_Asia = 0.0
+Sn_Asia := newAsia ? 0 : Sn_Asia[1] + volume * (hlc3 - v_Asia[1]) * (hlc3 - mv_Asia)
+std_Asia = math.sqrt(Sn_Asia / vol_Asia)
+
+// London
+p_London = hlc3 * volume
+p_London := newLondon ? hlc3 * volume : p_London[1] + hlc3 * volume
+
+vol_London = 0.0
+vol_London := newLondon ? volume : vol_London[1] + volume
+
+v_London = p_London / vol_London
+mv_London = v_London
+L_vwap = mv_London
+
+Sn_London = 0.0
+Sn_London := newLondon ? 0 : Sn_London[1] + volume * (hlc3 - v_London[1]) * (hlc3 - mv_London)
+std_London = math.sqrt(Sn_London / vol_London)
+
+// NY
+p_NY = hlc3 * volume
+p_NY := newNY ? hlc3 * volume : p_NY[1] + hlc3 * volume
+
+vol_NY = 0.0
+vol_NY := newNY ? volume : vol_NY[1] + volume
+
+v_NY = p_NY / vol_NY
+mv_NY = v_NY
+NY_vwap = mv_NY
+
+Sn_NY = 0.0
+Sn_NY := newNY ? 0 : Sn_NY[1] + volume * (hlc3 - v_NY[1]) * (hlc3 - mv_NY)
+std_NY = math.sqrt(Sn_NY / vol_NY)
+
+// Plot VWAP
+A = plot(showvS and showAsia and inAsia ? A_vwap : na, title='Asia VWAP', color=color.new(color.yellow, 0), linewidth=2, style=plot.style_linebr, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showvS and showAsia and inAsia ? A_vwap : na, '     --- vAsia   ', color.yellow, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+L = plot(showvS and showLondon and inLondon ? L_vwap : na, title='London VWAP', color=color.new(color.blue, 0), linewidth=2, style=plot.style_linebr, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showvS and showLondon and inLondon ? L_vwap : na, '     --- vLondon   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+N = plot(showvS and showNY and inNY ? NY_vwap : na, title='New York VWAP', color=color.new(#5eff3b, 0), linewidth=2, style=plot.style_linebr, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showvS and showNY and inNY ? NY_vwap : na, '     --- vNY   ', #5eff3b, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+//-------------------- Plot Standard Deviation Bands --------------------//
+
+[s2up_A, s1up_A, s1dn_A, s2dn_A] = compute_stDEV(A_vwap, std_Asia, stDevMultiplier_1, stDevMultiplier_2)
+[s2up_L, s1up_L, s1dn_L, s2dn_L] = compute_stDEV(L_vwap, std_London, stDevMultiplier_1, stDevMultiplier_2)
+[s2up_NY, s1up_NY, s1dn_NY, s2dn_NY] = compute_stDEV(NY_vwap, std_NY, stDevMultiplier_1, stDevMultiplier_2)
+
+// Asia Standard Deviation Bands
+sd2up_A = plot(showStd_S and inAsia ? s2up_A : na, title='VWAP_Asia - STDEV +2', color=color.new(color.red, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inAsia ? s2up_A : na, '     --- vA SD+2   ', color.red, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd1up_A = plot(showStd_S and inAsia ? s1up_A : na, title='VWAP_Asia - STDEV +1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inAsia ? s1up_A : na, '     --- vA SD+1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd1dn_A = plot(showStd_S and inAsia ? s1dn_A : na, title='VWAP_Asia - STDEV -1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inAsia ? s1dn_A : na, '     --- vA SD-1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd2dn_A = plot(showStd_S and inAsia ? s2dn_A : na, title='VWAP_Asia - STDEV -2', color=color.new(color.blue, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inAsia ? s2dn_A : na, '     --- vA SD-2   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+// London Standard Deviation Bands
+sd2up_L = plot(showStd_S and inLondon ? s2up_L : na, title='VWAP_London - STDEV +2', color=color.new(color.red, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inLondon ? s2up_L : na, '     --- vL SD+2   ', color.red, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd1up_L = plot(showStd_S and inLondon ? s1up_L : na, title='VWAP_London - STDEV +1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inLondon ? s1up_L : na, '     --- vL SD+1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd1dn_L = plot(showStd_S and inLondon ? s1dn_L : na, title='VWAP_London - STDEV -1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inLondon ? s1dn_L : na, '     --- vL SD-1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd2dn_L = plot(showStd_S and inLondon ? s2dn_L : na, title='VWAP_London - STDEV -2', color=color.new(color.blue, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inLondon ? s2dn_L : na, '     --- vL SD-2   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+// NY Standard Deviation Bands
+sd2up_NY = plot(showStd_S and inNY ? s2up_NY : na, title='VWAP_NY - STDEV +2', color=color.new(color.red, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inNY ? s2up_NY : na, '     --- vNY SD+2   ', color.red, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd1up_NY = plot(showStd_S and inNY ? s1up_NY : na, title='VWAP_NY - STDEV +1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inNY ? s1up_NY : na, '     --- vNY SD+1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd1dn_NY = plot(showStd_S and inNY ? s1dn_NY : na, title='VWAP_NY - STDEV -1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inNY ? s1dn_NY : na, '     --- vNY SD-1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+sd2dn_NY = plot(showStd_S and inNY ? s2dn_NY : na, title='VWAP_NY - STDEV -2', color=color.new(color.blue, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showS_label and showStd_S and inNY ? s2dn_NY : na, '     --- vNY SD-2   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+//-------------------- VWAP Day --------------------//
+
+dChange = ta.change(time("1D"))
+newSessionD = na(dChange) ? false : dChange != 0
+[vD, stdevD] = computeVWAP(src, newSessionD)
+
+[s2up_D, s1up_D, s1dn_D, s2dn_D] = compute_stDEV(vD, stdevD, stDevMultiplier_1, stDevMultiplier_2)
+
+// 24h VWAP — anchored to the trading day, one continuous line (independent of session VWAPs)
+plot(show24h ? vD : na, title='24h VWAP', color=color.new(#f57c00, 0), linewidth=2, style=plot.style_linebr)
+f_drawLabel(ll_offset, showD_label and show24h ? vD : na, '     --- v24h   ', #f57c00, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+plot(showvD and not showvS ? vD : na, title='VWAP - Daily', color=color.new(color.gray, 0), style=plot.style_linebr, linewidth=1, display = display.all - display.status_line)
+plot(showvD and showvS and not inAsia ? vD : na, title='VWAP - Daily', color=color.new(color.gray, 0), style=plot.style_linebr, linewidth=1, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showD_label and showvD and not showvS ? vD : na, '     --- vD   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+f_drawLabel(ll_offset, showD_label and showvD and showvS and not inAsia ? vD : na, '     --- vD   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+plot(showStd_D ? s1up_D : na, title='VWAP Day - STDEV +1', color=color.new(color.gray, 30), style=plot.style_circles, linewidth=1, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showD_label and showStd_D and not showStd_S ? s1up_D : na, '     --- vD SD+1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+f_drawLabel(ll_offset, showD_label and showStd_D and showStd_S and not inAsia ? s1up_D : na, '     --- vD SD+1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+plot(showStd_D ? s1dn_D : na, title='VWAP Day - STDEV -1', color=color.new(color.gray, 30), style=plot.style_circles, linewidth=1, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showD_label and showStd_D and not showStd_S ? s1dn_D : na, '     --- vD SD-1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+f_drawLabel(ll_offset, showD_label and showStd_D and showStd_S and not inAsia ? s1dn_D : na, '     --- vD SD-1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+plot(showStd_D ? s2up_D : na, title='VWAP Day - STDEV +2', color=color.new(color.red, 50), style=plot.style_circles, linewidth=1, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showD_label and showStd_D and not showStd_S ? s2up_D : na, '     --- vD SD+2   ', color.red, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+f_drawLabel(ll_offset, showD_label and showStd_D and showStd_S and not inAsia ? s2up_D : na, '     --- vD SD+2   ', color.red, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+
+plot(showStd_D ? s2dn_D : na, title='VWAP Day - STDEV -2', color=color.new(color.blue, 50), style=plot.style_circles, linewidth=1, display = display.all - display.status_line)
+f_drawLabel(ll_offset, showD_label and showStd_D and not showStd_S ? s2dn_D : na, '     --- vD SD-2   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+f_drawLabel(ll_offset, showD_label and showStd_D and showStd_S and not inAsia ? s2dn_D : na, '     --- vD SD-2   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
