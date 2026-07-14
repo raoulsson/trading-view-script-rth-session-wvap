@@ -11,6 +11,15 @@ automatically.
 - **Website:** https://raoulsson.com
 - **Repo:** https://github.com/raoulsson/trading-view-script-rth-session-wvap
 
+## Screenshots
+
+MNQ (Micro E-mini Nasdaq) 15m — session VWAPs with a volume-profile overlay for context.
+The NY VWAP anchors to 09:30 ET; the 24h VWAP runs continuously across the trading day.
+
+![RTH Session VWAP on MNQ 15m — session VWAPs with volume profile](./img/rth-session-vwap-1.png)
+
+![RTH Session VWAP on MNQ 15m — session VWAPs overlaid with intraday price line](./img/rth-session-vwap-2.png)
+
 ## Attribution
 
 This is a modified derivative of **"Koalafied VWAP Session/Day"** (published as *Session VWAP*)
@@ -39,10 +48,22 @@ This project keeps the same MPL-2.0 license (see [`LICENSE`](./LICENSE)).
 
 ## Installation
 
-1. Open TradingView → **Pine Editor**.
-2. Paste the contents of [`RTH_Session_VWAP.pine`](./RTH_Session_VWAP.pine).
-3. Click **Add to chart**.
-4. If you had a previous version loaded, open the indicator settings and use
+Two ways to get it on your chart:
+
+**A) From TradingView's Indicators library (easiest)**
+
+1. Open TradingView, click **Indicators** in the top toolbar.
+2. Search for **"RTH Session VWAP"** and add it to your chart.
+
+**B) From source (this repo)**
+
+1. Grab the Pine code &mdash; either copy the contents of
+   [`rth-session-vwap.pine`](./rth-session-vwap.pine) directly, or clone the repo:
+   ```
+   git clone https://github.com/raoulsson/trading-view-script-rth-session-wvap.git
+   ```
+2. In TradingView, open **Pine Editor**, paste the code, and click **Add to chart**.
+3. If you had a previous version loaded, open the indicator settings and use
    **Defaults → Reset settings** (or remove and re-add) so the presets take effect.
 
 ## Settings
