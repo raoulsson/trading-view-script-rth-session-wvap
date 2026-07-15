@@ -68,8 +68,8 @@ Two ways to get it on your chart:
 
 ## Settings
 
-- **Display:** master + per-session VWAP toggles, 24h VWAP, daily VWAP, std-dev bands, labels.
-- **Calc:** std-dev multipliers, VWAP source, label offset.
+- **Display:** master + per-session VWAP toggles, 24h VWAP, session/24h std-dev bands, labels.
+- **Calc:** std-dev multipliers, VWAP source (applies to all VWAPs), label offset.
 - **Sessions:** per-session timezone and session hours.
 
 Session hours are entered in each session's own market timezone (e.g. NY `0930-1600`).
