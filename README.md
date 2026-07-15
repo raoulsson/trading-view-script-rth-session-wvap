@@ -1,4 +1,4 @@
-# RTH Session VWAP
+# "RTH Session VWAP" Indicator - TradingView Pine Script 
 
 A TradingView (Pine Script **v6**) indicator that plots timezone-correct session VWAPs
 (New York, Europe, Asia) plus a continuous 24h/daily VWAP, with optional standard-deviation bands.
