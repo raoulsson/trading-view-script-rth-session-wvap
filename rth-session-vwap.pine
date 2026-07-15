@@ -36,35 +36,50 @@ f_drawLabel(_x, _y, _text, _textcolor, _style, _size) =>
     var _label = label.new(x=_x, y=_y, text=_text, textcolor=_textcolor, style=_style, size=_size, xloc=xloc.bar_time)
     label.set_xy(_label, _x, _y)
 
+// Parse a session dropdown value of the form 'IANA/Zone (HHMM-HHMM[, default])'.
+f_tz(_sel)    => array.get(str.split(_sel, ' '), 0)                                   // token before the first space
+f_hours(_sel) => str.substring(_sel, str.pos(_sel, '(') + 1, str.pos(_sel, '(') + 10) // the HHMM-HHMM after '('
+
 //-------------------- Inputs --------------------//
 
 showDaily = input(true, 'Show Daily VWAP', group = 'Display', display = display.none)
 showAsia = input(false, 'Show Asia VWAP', group = 'Display', display = display.none)
-showLondon = input(false, 'Show London VWAP', group = 'Display', display = display.none)
+showLondon = input(false, 'Show Europe VWAP', group = 'Display', display = display.none)
 showNY = input(true, 'Show NY VWAP', group = 'Display', display = display.none)
 showD_label      = input(false, 'Show Daily Label',  group = 'Display', display = display.none)
 showAsia_label   = input(false, 'Show Asia Label',   group = 'Display', display = display.none)
-showLondon_label = input(false, 'Show London Label', group = 'Display', display = display.none)
+showLondon_label = input(false, 'Show Europe Label', group = 'Display', display = display.none)
 showNY_label     = input(false, 'Show NY Label',     group = 'Display', display = display.none)
 
 showStd_A  = input(false, 'Show Asia Std Dev Bands',   group = 'Display', display = display.none)
-showStd_L  = input(false, 'Show London Std Dev Bands', group = 'Display', display = display.none)
+showStd_L  = input(false, 'Show Europe Std Dev Bands', group = 'Display', display = display.none)
 showStd_NY = input(false, 'Show NY Std Dev Bands',     group = 'Display', display = display.none)
 showStd_D  = input(false, 'Show Daily Std Dev Bands',  group = 'Display', display = display.none)
 
-// Sessions declared before Calculation so the Sessions group sorts above it in the settings panel.
-// Timezone is a curated dropdown per session; hours are entered in each session's OWN market
-// timezone and are DST-aware automatically (the timezone is applied via time() below).
-// Each option is 'IANA/Zone (hhmm-hhmm[, default])'; the bracketed hours are a typical-session
-// HINT for the Override field (not applied). We keep the token before the first space, so time()
-// always receives a clean IANA identifier regardless of the label text.
-tzAsia   = array.get(str.split(input.string('Asia/Tokyo (0900-1500, default)',       'Asia Timezone',   options = ['Asia/Tokyo (0900-1500, default)', 'Asia/Hong_Kong (0930-1600)', 'Asia/Shanghai (0930-1500)', 'Asia/Singapore (0900-1700)', 'Asia/Seoul (0900-1530)', 'Asia/Kolkata (0915-1530)', 'Asia/Dubai (1000-1500)', 'Australia/Sydney (1000-1600)'], group = 'Sessions', tooltip = 'Timezone the Asia session hours are read in. Bracketed hours are a typical-session hint. DST handled automatically.', display = display.none), ' '), 0)
-tzLondon = array.get(str.split(input.string('Europe/London (0800-1630, default)',    'London Timezone', options = ['Europe/London (0800-1630, default)', 'Europe/Frankfurt (0900-1730)', 'Europe/Zurich (0900-1730)', 'Europe/Paris (0900-1730)', 'Europe/Moscow (1000-1840)'], group = 'Sessions', tooltip = 'Timezone the London session hours are read in. Bracketed hours are a typical-session hint. DST handled automatically.', display = display.none), ' '), 0)
-tzNY     = array.get(str.split(input.string('America/New_York (0930-1600, default)', 'NY Timezone',     options = ['America/New_York (0930-1600, default)', 'America/Chicago (0830-1500)', 'America/Denver (0730-1400)', 'America/Los_Angeles (0630-1300)', 'America/Toronto (0930-1600)', 'America/Sao_Paulo (1000-1700)'], group = 'Sessions', tooltip = 'Timezone the NY session hours are read in. Bracketed hours are a typical-session hint. DST handled automatically.', display = display.none), ' '), 0)
+// Sessions declared before Calculation so they sort above it. Each session is ONE block: a zone+hours
+// dropdown, a "Use custom hours" checkbox, and a Custom hours field applied only when that checkbox is
+// on (read in the dropdown timezone). Pine cannot grey out the field, so it always shows. The dropdown
+// value is 'IANA/Zone (HHMM-HHMM[, default])': f_tz takes the zone, f_hours the hours.
 
-Asia_session_full   = input.session('0900-1500', 'Asia Session',   group = 'Override Timezone Values', tooltip = 'Entered in Asia Timezone local time, independent of your chart timezone.', display = display.none)
-London_session_full = input.session('0800-1630', 'London Session', group = 'Override Timezone Values', tooltip = 'Entered in London Timezone local time, independent of your chart timezone.', display = display.none)
-NY_session_full     = input.session('0930-1600', 'NY Session',     group = 'Override Timezone Values', tooltip = 'Entered in NY Timezone local time (RTH default 0930-1600), independent of your chart timezone.', display = display.none)
+selAsia       = input.string('Asia/Tokyo (0900-1500, default)', 'Zone & preset hours', options = ['Asia/Tokyo (0900-1500, default)', 'Asia/Hong_Kong (0930-1600)', 'Asia/Shanghai (0930-1500)', 'Asia/Singapore (0900-1700)', 'Asia/Seoul (0900-1530)', 'Asia/Kolkata (0915-1530)', 'Asia/Dubai (1000-1500)', 'Australia/Sydney (1000-1600)'], group = 'Asia Session', tooltip = 'Sets the Asia session timezone and default hours. DST handled automatically.', display = display.none)
+useCustomAsia = input.bool(false, 'Use custom hours (overrides selection above)', group = 'Asia Session', display = display.none)
+customAsia    = input.session('0900-1500', 'Custom hours', group = 'Asia Session', tooltip = 'Applied only when "Use custom hours" is on. Read in the Asia dropdown timezone.', display = display.none)
+
+selLondon       = input.string('Europe/London (0800-1630, default)', 'Zone & preset hours', options = ['Europe/London (0800-1630, default)', 'Europe/Berlin (0900-1730)', 'Europe/Zurich (0900-1730)', 'Europe/Paris (0900-1730)', 'Europe/Moscow (1000-1840)'], group = 'Europe Session', tooltip = 'Sets the Europe session timezone and default hours. DST handled automatically.', display = display.none)
+useCustomLondon = input.bool(false, 'Use custom hours (overrides selection above)', group = 'Europe Session', display = display.none)
+customLondon    = input.session('0800-1630', 'Custom hours', group = 'Europe Session', tooltip = 'Applied only when "Use custom hours" is on. Read in the Europe dropdown timezone.', display = display.none)
+
+selNY        = input.string('America/New_York (0930-1600, default)', 'Zone & preset hours', options = ['America/New_York (0930-1600, default)', 'America/Chicago (0830-1500)', 'America/Denver (0730-1400)', 'America/Los_Angeles (0630-1300)', 'America/Toronto (0930-1600)', 'America/Sao_Paulo (1000-1700)'], group = 'NY Session', tooltip = 'Sets the NY session timezone and default hours. DST handled automatically.', display = display.none)
+useCustomNY  = input.bool(false, 'Use custom hours (overrides selection above)', group = 'NY Session', display = display.none)
+customNY     = input.session('0930-1600', 'Custom hours', group = 'NY Session', tooltip = 'Applied only when "Use custom hours" is on. Read in the NY dropdown timezone.', display = display.none)
+
+tzAsia   = f_tz(selAsia)
+tzLondon = f_tz(selLondon)
+tzNY     = f_tz(selNY)
+
+Asia_session_full   = useCustomAsia   ? customAsia   : f_hours(selAsia)
+London_session_full = useCustomLondon ? customLondon : f_hours(selLondon)
+NY_session_full     = useCustomNY     ? customNY     : f_hours(selNY)
 
 stDevMultiplier_1 = input(1.0, "StDev mult 1", group = 'Calculation', display = display.none)
 stDevMultiplier_2 = input(2.0, "StDev mult 2", group = 'Calculation', display = display.none)
@@ -140,8 +155,8 @@ std_NY = math.sqrt(Sn_NY / vol_NY)
 A = plot(showAsia and inAsia ? A_vwap : na, title='Asia VWAP', color=color.new(color.yellow, 0), linewidth=2, style=plot.style_linebr, display = display.all - display.status_line - display.price_scale)
 f_drawLabel(ll_offset, showAsia_label and showAsia and inAsia ? A_vwap : na, '     --- vAsia   ', color.yellow, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
 
-L = plot(showLondon and inLondon ? L_vwap : na, title='London VWAP', color=color.new(color.aqua, 0), linewidth=2, style=plot.style_linebr, display = display.all - display.status_line - display.price_scale)
-f_drawLabel(ll_offset, showLondon_label and showLondon and inLondon ? L_vwap : na, '     --- vLondon   ', color.aqua, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+L = plot(showLondon and inLondon ? L_vwap : na, title='Europe VWAP', color=color.new(color.aqua, 0), linewidth=2, style=plot.style_linebr, display = display.all - display.status_line - display.price_scale)
+f_drawLabel(ll_offset, showLondon_label and showLondon and inLondon ? L_vwap : na, '     --- vEurope   ', color.aqua, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
 
 N = plot(showNY and inNY ? NY_vwap : na, title='New York VWAP', color=color.new(#5eff3b, 0), linewidth=2, style=plot.style_linebr, display = display.all - display.status_line - display.price_scale)
 f_drawLabel(ll_offset, showNY_label and showNY and inNY ? NY_vwap : na, '     --- vNY   ', #5eff3b, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
@@ -166,17 +181,17 @@ sd2dn_A = plot(showStd_A and showAsia and inAsia ? s2dn_A : na, title='VWAP_Asia
 f_drawLabel(ll_offset, showAsia_label and showStd_A and showAsia and inAsia ? s2dn_A : na, '     --- vAsia SD-2   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
 
 // London Standard Deviation Bands
-sd2up_L = plot(showStd_L and showLondon and inLondon ? s2up_L : na, title='VWAP_London - STDEV +2', color=color.new(color.red, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
-f_drawLabel(ll_offset, showLondon_label and showStd_L and showLondon and inLondon ? s2up_L : na, '     --- vLondon SD+2   ', color.red, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+sd2up_L = plot(showStd_L and showLondon and inLondon ? s2up_L : na, title='VWAP_Europe - STDEV +2', color=color.new(color.red, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
+f_drawLabel(ll_offset, showLondon_label and showStd_L and showLondon and inLondon ? s2up_L : na, '     --- vEurope SD+2   ', color.red, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
 
-sd1up_L = plot(showStd_L and showLondon and inLondon ? s1up_L : na, title='VWAP_London - STDEV +1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
-f_drawLabel(ll_offset, showLondon_label and showStd_L and showLondon and inLondon ? s1up_L : na, '     --- vLondon SD+1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+sd1up_L = plot(showStd_L and showLondon and inLondon ? s1up_L : na, title='VWAP_Europe - STDEV +1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
+f_drawLabel(ll_offset, showLondon_label and showStd_L and showLondon and inLondon ? s1up_L : na, '     --- vEurope SD+1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
 
-sd1dn_L = plot(showStd_L and showLondon and inLondon ? s1dn_L : na, title='VWAP_London - STDEV -1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
-f_drawLabel(ll_offset, showLondon_label and showStd_L and showLondon and inLondon ? s1dn_L : na, '     --- vLondon SD-1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+sd1dn_L = plot(showStd_L and showLondon and inLondon ? s1dn_L : na, title='VWAP_Europe - STDEV -1', color=color.new(color.gray, 70), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
+f_drawLabel(ll_offset, showLondon_label and showStd_L and showLondon and inLondon ? s1dn_L : na, '     --- vEurope SD-1   ', color.gray, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
 
-sd2dn_L = plot(showStd_L and showLondon and inLondon ? s2dn_L : na, title='VWAP_London - STDEV -2', color=color.new(color.blue, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
-f_drawLabel(ll_offset, showLondon_label and showStd_L and showLondon and inLondon ? s2dn_L : na, '     --- vLondon SD-2   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
+sd2dn_L = plot(showStd_L and showLondon and inLondon ? s2dn_L : na, title='VWAP_Europe - STDEV -2', color=color.new(color.blue, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
+f_drawLabel(ll_offset, showLondon_label and showStd_L and showLondon and inLondon ? s2dn_L : na, '     --- vEurope SD-2   ', color.blue, DEFAULT_LABEL_STYLE, DEFAULT_LABEL_SIZE)
 
 // NY Standard Deviation Bands
 sd2up_NY = plot(showStd_NY and showNY and inNY ? s2up_NY : na, title='VWAP_NY - STDEV +2', color=color.new(color.red, 80), style=plot.style_linebr, linewidth=3, display = display.all - display.status_line - display.price_scale)
