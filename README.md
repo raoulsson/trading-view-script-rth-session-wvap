@@ -37,11 +37,11 @@ This project keeps the same MPL-2.0 license (see [`LICENSE`](./LICENSE)).
 - **Pine v6 migration.** `time()` results (int-or-`na`) are converted to real booleans, since v6
   removed implicit `int`/`float` → `bool` casting; the daily reset uses an explicit boolean
   condition rather than a numeric one.
-- **24h VWAP.** An always-on VWAP line anchored to the trading day, drawn independently of the
-  session VWAPs.
+- **Daily VWAP.** An always-on VWAP line anchored to the trading day (24h/Globex), drawn
+  independently of the session VWAPs.
 - **Per-session toggles.** Independent show switches for each session (Asia and London off,
-  New York on by default), plus a master switch.
-- **Presets.** Line colors and width preset (Asia yellow, London blue, NY green, 24h amber),
+  New York on by default).
+- **Presets.** Line colors and width preset (Asia yellow, London cyan, NY green, 24h amber),
   session/daily labels off by default.
 - **Clean legend.** All inputs and helper plots are hidden from the status line, so the chart
   legend stays uncluttered while the values remain in the Data Window and Inputs tab.
@@ -68,11 +68,29 @@ Two ways to get it on your chart:
 
 ## Settings
 
-- **Display:** master + per-session VWAP toggles, 24h VWAP, session/24h std-dev bands, labels.
-- **Calc:** std-dev multipliers, VWAP source (applies to all VWAPs), label offset.
-- **Sessions:** per-session timezone and session hours.
+<pre>
+Timezone behaviour
+──────────────────
+Each session's hours are read in that session's OWN market timezone, not your
+chart timezone. The timezone is passed explicitly to Pine's time():
 
-Session hours are entered in each session's own market timezone (e.g. NY `0930-1600`).
+    tNY = time(timeframe.period, NY_session_full + ':1234567', tzNY)
+
+Consequences:
+  • 0930-1600 always means New York local wall-clock — whether your chart is
+    set to Manila, UTC, or anything else.
+  • Daylight saving is handled automatically; you never re-enter hours in spring/fall.
+  • Timezone is a DROPDOWN of major market zones per session (e.g. Asia/Hong_Kong,
+    Europe/Frankfurt, America/Chicago) — pick any; presets are just the defaults.
+    (Dropdown, not free text: an unrecognized zone would be silently ignored.)
+
+Defaults: Asia = Asia/Tokyo 0900-1500 · London = Europe/London 0800-1630 ·
+          NY = America/New_York 0930-1600 (RTH cash session).
+</pre>
+
+- **Display:** Daily VWAP, per-session VWAP toggles, per-session + Daily std-dev band toggles, labels.
+- **Calculation:** std-dev multipliers, VWAP source (applies to all VWAPs), label offset.
+- **Sessions:** per-session timezone and session hours (each in its own market timezone).
 
 ## Notes
 

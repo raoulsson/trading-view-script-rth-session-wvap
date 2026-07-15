@@ -47,5 +47,9 @@ The script is one linear top-to-bottom program (Pine has no modules). Sections i
 - **Three parallel session blocks.** Asia/London/NY VWAP logic, plots, and label calls are triplicated.
   Changes to VWAP math or plot style almost always need to be made in all three.
 - Session hours are typed in each session's own market timezone (NY default `0930-1600` = RTH cash open).
+- **Keep string literals pure ASCII.** A non-ASCII char (em-dash `—`, smart quote, etc.) inside a
+  `tooltip`/`title`/label string desyncs Pine's tokenizer and surfaces as a misleading
+  `CE10015 Missing closing parenthesis` reported at the *end* of the file, not at the bad line.
+  Non-ASCII in comments is tolerated (see the `©` header), but never put it in a string.
 - After changing input defaults/presets, note in the README that users must **Reset settings** on TV
   for new defaults to take effect (existing saved settings override code defaults).
