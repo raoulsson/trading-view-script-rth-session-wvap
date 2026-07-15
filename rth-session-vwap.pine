@@ -1,8 +1,31 @@
 // This source code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
-// © TJ_667
-// Modified: Pine v6. Explicit per-session timezones; market time for all sessions.
-// v6 fixes: time() int results wrapped to real booleans (no implicit int/float->bool cast);
-//           daily reset uses an explicit bool condition.
+// © TJ_667  |  Modifications © 2026 raoulsson
+//
+// ============================================================================
+//  RTH Session VWAP - changes vs the original "Koalafied VWAP Session/Day"
+// ============================================================================
+//  Timezones
+//    - Each session (Asia, Europe, NY) computes in an explicit market timezone
+//      via time(period, session, tz), so it plots correctly no matter what
+//      timezone the chart is set to. Daylight saving is handled automatically.
+//    - NY defaults to the RTH cash session 0930-1600 New York time.
+//  Session inputs (one block per session)
+//    - A "Zone & preset hours" dropdown sets BOTH the timezone and the default
+//      hours, e.g. "America/New York (0930-1600, default)". Displayed with
+//      spaces; f_tz restores the IANA underscores time() requires. Only real
+//      IANA zone names work (Germany is Europe/Berlin, not Europe/Frankfurt).
+//    - A per-session "Use custom hours" checkbox + Custom hours field override
+//      the dropdown hours when enabled (read in the same dropdown timezone).
+//  Plots / display
+//    - Always-on Daily (24h) VWAP anchored to the trading-day (Globex) boundary.
+//    - Per-session VWAP toggles, per-session labels, per-session + Daily std-dev
+//      band toggles. VWAP source applies to all VWAPs (sessions + Daily).
+//    - Colored last-value price-axis tags removed; status line kept clean.
+//    - Color presets: Asia yellow, Europe cyan, NY green, Daily amber.
+//  Pine v6
+//    - time() int-or-na results wrapped to real booleans (v6 dropped implicit
+//      int/float -> bool casting); the daily reset uses an explicit bool.
+// ============================================================================
 
 //@version=6
 indicator('RTH Session VWAP', 'RTH Session VWAP', true)
