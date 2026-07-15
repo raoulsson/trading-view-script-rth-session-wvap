@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## What this is
 
 A single-file **TradingView Pine Script v6** indicator (`rth-session-vwap.pine`) that plots
-timezone-correct session VWAPs (Asia, London, New York) plus a continuous 24h/daily VWAP, with
+timezone-correct session VWAPs (Asia, Europe, New York) plus a continuous 24h/daily VWAP, with
 optional standard-deviation bands. There is no build system, test suite, package manager, or CLI —
 the code runs inside TradingView's Pine Editor. "Running" it means pasting the `.pine` file into
 TradingView (Pine Editor → Add to chart). All editing/review happens here; validation happens on TV.
@@ -46,6 +46,9 @@ The script is one linear top-to-bottom program (Pine has no modules). Sections i
   not across functions). When editing a body, match the leading whitespace of that same body exactly.
 - **Three parallel session blocks.** Asia/London/NY VWAP logic, plots, and label calls are triplicated.
   Changes to VWAP math or plot style almost always need to be made in all three.
+- **The middle session is "Europe" in the UI but `London`/`L_` in code.** Variable names (`tzLondon`,
+  `L_vwap`, `showLondon`, `Sn_London`, …) and the `Europe/London` IANA default were kept; only the
+  user-facing strings (group, toggles, titles, `vEurope` labels) say "Europe". Don't "fix" the mismatch.
 - Session hours are typed in each session's own market timezone (NY default `0930-1600` = RTH cash open).
 - **Keep string literals pure ASCII.** A non-ASCII char (em-dash `—`, smart quote, etc.) inside a
   `tooltip`/`title`/label string desyncs Pine's tokenizer and surfaces as a misleading

@@ -1,7 +1,7 @@
 # RTH Session VWAP
 
 A TradingView (Pine Script **v6**) indicator that plots timezone-correct session VWAPs
-(New York, London, Asia) plus a continuous 24h/daily VWAP, with optional standard-deviation bands.
+(New York, Europe, Asia) plus a continuous 24h/daily VWAP, with optional standard-deviation bands.
 
 Built for intraday futures trading where the chart is viewed from a timezone that differs
 from the exchange — the sessions compute in explicit market timezones, so they plot correctly
@@ -39,10 +39,13 @@ This project keeps the same MPL-2.0 license (see [`LICENSE`](./LICENSE)).
   condition rather than a numeric one.
 - **Daily VWAP.** An always-on VWAP line anchored to the trading day (24h/Globex), drawn
   independently of the session VWAPs.
-- **Per-session toggles.** Independent show switches for each session (Asia and London off,
+- **Per-session config blocks.** Each session (Asia, Europe, NY) is one block: a dropdown that sets
+  the timezone **and** its hours, a per-session **Use custom hours** checkbox, and a custom from-to
+  field applied only when that checkbox is on.
+- **Per-session toggles.** Independent show switches for each session (Asia and Europe off,
   New York on by default).
-- **Presets.** Line colors and width preset (Asia yellow, London cyan, NY green, 24h amber),
-  session/daily labels off by default.
+- **Presets.** Line colors and width preset (Asia yellow, Europe cyan, NY green, Daily amber),
+  labels off by default.
 - **Clean legend.** All inputs and helper plots are hidden from the status line, so the chart
   legend stays uncluttered while the values remain in the Data Window and Inputs tab.
 
@@ -69,10 +72,17 @@ Two ways to get it on your chart:
 ## Settings
 
 <pre>
-Timezone behaviour
-──────────────────
-Each session's hours are read in that session's OWN market timezone, not your
-chart timezone. The timezone is passed explicitly to Pine's time():
+Sessions & timezone behaviour
+─────────────────────────────
+Each session (Asia, Europe, NY) is one block:
+  • Zone & preset hours — a dropdown that sets the timezone AND default hours,
+                          e.g. "America/New York (0930-1600, default)".
+  • Use custom hours    — a checkbox; when on, the Custom hours field below
+                          replaces the dropdown hours (read in the same zone).
+  • Custom hours        — your own from-to session window.
+
+Hours are read in the session's OWN market timezone, not your chart timezone —
+they are passed explicitly to Pine's time():
 
     tNY = time(timeframe.period, NY_session_full + ':1234567', tzNY)
 
@@ -80,17 +90,19 @@ Consequences:
   • 0930-1600 always means New York local wall-clock — whether your chart is
     set to Manila, UTC, or anything else.
   • Daylight saving is handled automatically; you never re-enter hours in spring/fall.
-  • Timezone is a DROPDOWN of major market zones per session (e.g. Asia/Hong_Kong,
-    Europe/Frankfurt, America/Chicago) — pick any; presets are just the defaults.
-    (Dropdown, not free text: an unrecognized zone would be silently ignored.)
+  • Zones are a curated dropdown of real IANA names (e.g. Asia/Hong Kong,
+    Europe/Berlin, America/Chicago). Only genuine IANA identifiers work — a
+    non-IANA name such as "Europe/Frankfurt" (Germany is Europe/Berlin) errors,
+    so pick from the list.
 
-Defaults: Asia = Asia/Tokyo 0900-1500 · London = Europe/London 0800-1630 ·
-          NY = America/New_York 0930-1600 (RTH cash session).
+Defaults: Asia = Asia/Tokyo 0900-1500 · Europe = Europe/London 0800-1630 ·
+          NY = America/New York 0930-1600 (RTH cash session).
 </pre>
 
-- **Display:** Daily VWAP, per-session VWAP toggles, per-session + Daily std-dev band toggles, labels.
+- **Display:** Daily VWAP, per-session VWAP toggles, per-session labels, per-session + Daily std-dev
+  band toggles.
+- **Asia / Europe / NY Session:** zone+hours dropdown, "Use custom hours" checkbox, custom hours field.
 - **Calculation:** std-dev multipliers, VWAP source (applies to all VWAPs), label offset.
-- **Sessions:** per-session timezone and session hours (each in its own market timezone).
 
 ## Notes
 

@@ -36,9 +36,10 @@ f_drawLabel(_x, _y, _text, _textcolor, _style, _size) =>
     var _label = label.new(x=_x, y=_y, text=_text, textcolor=_textcolor, style=_style, size=_size, xloc=xloc.bar_time)
     label.set_xy(_label, _x, _y)
 
-// Parse a session dropdown value of the form 'IANA/Zone (HHMM-HHMM[, default])'.
-f_tz(_sel)    => array.get(str.split(_sel, ' '), 0)                                   // token before the first space
-f_hours(_sel) => str.substring(_sel, str.pos(_sel, '(') + 1, str.pos(_sel, '(') + 10) // the HHMM-HHMM after '('
+// Parse a session dropdown value of the form 'IANA/Zone (HHMM-HHMM[, default])'. Display uses spaces
+// for readability (e.g. 'America/New York'); f_tz restores the IANA underscores that time() requires.
+f_tz(_sel)    => str.replace_all(str.substring(_sel, 0, str.pos(_sel, ' (')), ' ', '_') // zone before ' (', spaces->underscores
+f_hours(_sel) => str.substring(_sel, str.pos(_sel, '(') + 1, str.pos(_sel, '(') + 10)   // the HHMM-HHMM after '('
 
 //-------------------- Inputs --------------------//
 
@@ -61,7 +62,7 @@ showStd_D  = input(false, 'Show Daily Std Dev Bands',  group = 'Display', displa
 // on (read in the dropdown timezone). Pine cannot grey out the field, so it always shows. The dropdown
 // value is 'IANA/Zone (HHMM-HHMM[, default])': f_tz takes the zone, f_hours the hours.
 
-selAsia       = input.string('Asia/Tokyo (0900-1500, default)', 'Zone & preset hours', options = ['Asia/Tokyo (0900-1500, default)', 'Asia/Hong_Kong (0930-1600)', 'Asia/Shanghai (0930-1500)', 'Asia/Singapore (0900-1700)', 'Asia/Seoul (0900-1530)', 'Asia/Kolkata (0915-1530)', 'Asia/Dubai (1000-1500)', 'Australia/Sydney (1000-1600)'], group = 'Asia Session', tooltip = 'Sets the Asia session timezone and default hours. DST handled automatically.', display = display.none)
+selAsia       = input.string('Asia/Tokyo (0900-1500, default)', 'Zone & preset hours', options = ['Asia/Tokyo (0900-1500, default)', 'Asia/Hong Kong (0930-1600)', 'Asia/Shanghai (0930-1500)', 'Asia/Singapore (0900-1700)', 'Asia/Seoul (0900-1530)', 'Asia/Kolkata (0915-1530)', 'Asia/Dubai (1000-1500)', 'Australia/Sydney (1000-1600)'], group = 'Asia Session', tooltip = 'Sets the Asia session timezone and default hours. DST handled automatically.', display = display.none)
 useCustomAsia = input.bool(false, 'Use custom hours (overrides selection above)', group = 'Asia Session', display = display.none)
 customAsia    = input.session('0900-1500', 'Custom hours', group = 'Asia Session', tooltip = 'Applied only when "Use custom hours" is on. Read in the Asia dropdown timezone.', display = display.none)
 
@@ -69,7 +70,7 @@ selLondon       = input.string('Europe/London (0800-1630, default)', 'Zone & pre
 useCustomLondon = input.bool(false, 'Use custom hours (overrides selection above)', group = 'Europe Session', display = display.none)
 customLondon    = input.session('0800-1630', 'Custom hours', group = 'Europe Session', tooltip = 'Applied only when "Use custom hours" is on. Read in the Europe dropdown timezone.', display = display.none)
 
-selNY        = input.string('America/New_York (0930-1600, default)', 'Zone & preset hours', options = ['America/New_York (0930-1600, default)', 'America/Chicago (0830-1500)', 'America/Denver (0730-1400)', 'America/Los_Angeles (0630-1300)', 'America/Toronto (0930-1600)', 'America/Sao_Paulo (1000-1700)'], group = 'NY Session', tooltip = 'Sets the NY session timezone and default hours. DST handled automatically.', display = display.none)
+selNY        = input.string('America/New York (0930-1600, default)', 'Zone & preset hours', options = ['America/New York (0930-1600, default)', 'America/Chicago (0830-1500)', 'America/Denver (0730-1400)', 'America/Los Angeles (0630-1300)', 'America/Toronto (0930-1600)', 'America/Sao Paulo (1000-1700)'], group = 'NY Session', tooltip = 'Sets the NY session timezone and default hours. DST handled automatically.', display = display.none)
 useCustomNY  = input.bool(false, 'Use custom hours (overrides selection above)', group = 'NY Session', display = display.none)
 customNY     = input.session('0930-1600', 'Custom hours', group = 'NY Session', tooltip = 'Applied only when "Use custom hours" is on. Read in the NY dropdown timezone.', display = display.none)
 
