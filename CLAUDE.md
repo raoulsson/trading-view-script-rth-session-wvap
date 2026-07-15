@@ -51,5 +51,11 @@ The script is one linear top-to-bottom program (Pine has no modules). Sections i
   `tooltip`/`title`/label string desyncs Pine's tokenizer and surfaces as a misleading
   `CE10015 Missing closing parenthesis` reported at the *end* of the file, not at the bad line.
   Non-ASCII in comments is tolerated (see the `©` header), but never put it in a string.
+- **Timezone dropdown values must be real IANA canonical zone names.** The Sessions dropdowns encode
+  the zone as `IANA/Zone (HHMM-HHMM[, default])`; `f_tz` extracts the zone and passes it to `time()`.
+  An invented city that is not an IANA identifier (e.g. `Europe/Frankfurt` — Germany's zone is
+  `Europe/Berlin`) causes a hard runtime error at the `time()` call. Only add zones that exist in the
+  IANA tz database. Custom hours per session come from a `Use custom hours` checkbox + `input.session`
+  field, applied via `useCustom<Session> ? custom<Session> : f_hours(sel<Session>)`.
 - After changing input defaults/presets, note in the README that users must **Reset settings** on TV
   for new defaults to take effect (existing saved settings override code defaults).
