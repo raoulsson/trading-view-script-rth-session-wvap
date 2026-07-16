@@ -8,6 +8,7 @@ from the exchange — the sessions compute in explicit market timezones, so they
 no matter what timezone your chart is set to (e.g. Manila), and daylight saving is handled
 automatically.
 
+- **TradingView Script** https://www.tradingview.com/script/baqDrdPW-RTH-Session-VWAP/
 - **Website:** https://raoulsson.com
 - **Repo:** https://github.com/raoulsson/trading-view-script-rth-session-wvap
 
