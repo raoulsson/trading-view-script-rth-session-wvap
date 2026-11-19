@@ -1,5 +1,12 @@
 # Changelog
 
+## 2026.11.19-2133
+
+- Added the TradingView saved-script version (`28.0`) to the chart-visible short title.
+- Confirmed the saved script's four main VWAP and label defaults are enabled. Existing chart
+  instances can retain their saved input values after a source update; remove and re-add the
+  indicator to initialize it with the current defaults.
+
 ## 2026.11.19-1235
 
 - Set the default Asia session to 08:00–17:00 Asia/Tokyo, following the common NQ futures window

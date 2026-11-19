@@ -59,9 +59,10 @@ Two ways to get it on your chart:
 **A) Update your saved script from this repo**
 
 1. Open [`rth-session-vwap.pine`](./rth-session-vwap.pine) and copy the full file.
-2. In TradingView, open your saved **RTH Session VWAP** in Pine Editor, replace its source,
-   then save and add/update the chart instance.
-3. Use **Defaults → Reset settings** if the chart still has saved inputs from an older version.
+2. In TradingView, open your saved **RTH Session VWAP** in Pine Editor, replace its source, and save.
+3. To apply the new defaults on an existing chart, remove its old VWAP instance and add the updated
+   one. TradingView can retain saved inputs for an instance when its source is replaced; source
+   defaults do not overwrite those saved values.
 
 **B) Add from source as a separate script**
 
