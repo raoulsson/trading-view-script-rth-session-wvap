@@ -11,6 +11,7 @@ automatically.
 - **TradingView Script** https://www.tradingview.com/script/baqDrdPW-RTH-Session-VWAP/
 - **Website:** https://raoulsson.com
 - **Repo:** https://github.com/raoulsson/trading-view-script-rth-session-wvap
+- **Latest changes:** [`CHANGELOG.md`](./CHANGELOG.md)
 
 ## Screenshots
 
@@ -31,22 +32,23 @@ This project keeps the same MPL-2.0 license (see [`LICENSE`](./LICENSE)).
 
 - **Timezone-correct sessions.** Each session is computed in an explicit timezone
   (`America/New_York`, `Europe/London`, `Asia/Tokyo`) via the timezone argument of `time()`.
-  The original relied on the chart/exchange timezone, which broke session boundaries when the
-  chart was viewed from another timezone. DST is now handled automatically.
+  An omitted timezone uses the instrument's exchange timezone; explicit market zones keep the
+  intended session hours consistent across instruments and handle DST automatically. Changing
+  only the chart's display timezone does not change Pine calculations.
 - **New York = RTH.** The NY session defaults to the regular cash session, **09:30–16:00 ET**,
   so the NY VWAP anchors to the 09:30 open.
 - **Pine v6 migration.** `time()` results (int-or-`na`) are converted to real booleans, since v6
   removed implicit `int`/`float` → `bool` casting; the daily reset uses an explicit boolean
   condition rather than a numeric one.
-- **Daily VWAP.** An always-on VWAP line anchored to the trading day (24h/Globex), drawn
-  independently of the session VWAPs.
+- **Daily VWAP.** A VWAP line anchored to the trading day (24h/Globex), drawn independently of
+  the session VWAPs and visible by default.
 - **Per-session config blocks.** Each session (Asia, Europe, NY) is one block: a dropdown that sets
   the timezone **and** its hours, a per-session **Use custom hours** checkbox, and a custom from-to
   field applied only when that checkbox is on.
-- **Per-session toggles.** Independent show switches for each session (Asia and Europe off,
-  New York on by default).
+- **Visible defaults.** Daily, Asia, Europe, and New York VWAP lines and their main value labels
+  are all enabled by default. Each has an independent show switch.
 - **Presets.** Line colors and width preset (Asia yellow, Europe cyan, NY green, Daily amber),
-  labels off by default.
+  main VWAP labels on by default, standard-deviation bands off by default.
 - **Clean legend.** All inputs and helper plots are hidden from the status line, so the chart
   legend stays uncluttered while the values remain in the Data Window and Inputs tab.
 
@@ -54,12 +56,14 @@ This project keeps the same MPL-2.0 license (see [`LICENSE`](./LICENSE)).
 
 Two ways to get it on your chart:
 
-**A) From TradingView's Indicators library (easiest)**
+**A) Update your saved script from this repo**
 
-1. Open TradingView, click **Indicators** in the top toolbar.
-2. Search for **"RTH Session VWAP"** and add it to your chart.
+1. Open [`rth-session-vwap.pine`](./rth-session-vwap.pine) and copy the full file.
+2. In TradingView, open your saved **RTH Session VWAP** in Pine Editor, replace its source,
+   then save and add/update the chart instance.
+3. Use **Defaults → Reset settings** if the chart still has saved inputs from an older version.
 
-**B) From source (this repo)**
+**B) Add from source as a separate script**
 
 1. Grab the Pine code &mdash; either copy the contents of
    [`rth-session-vwap.pine`](./rth-session-vwap.pine) directly, or clone the repo:
@@ -96,20 +100,64 @@ Consequences:
     non-IANA name such as "Europe/Frankfurt" (Germany is Europe/Berlin) errors,
     so pick from the list.
 
-Defaults: Asia = Asia/Tokyo 0900-1500 · Europe = Europe/London 0800-1630 ·
+Defaults: Asia = Asia/Tokyo 0800-1700 · Europe = Europe/London 0800-1630 ·
           NY = America/New York 0930-1600 (RTH cash session).
+
+The Asia preset uses the common NQ futures convention: Globex reopen through roughly the London
+open, rather than Tokyo cash-equity hours. Tokyo has no daylight saving time. The fixed 0800-1700
+Tokyo window maps to 0700-1600 Manila during US winter time; when US daylight saving is active,
+shift the Tokyo window one hour earlier (0700-1600) if you want it to track the New York-anchored
+Globex reopen. Session naming varies by market; choose a different preset or custom hours if you
+use another definition of Asia.
 </pre>
 
-- **Display:** Daily VWAP, per-session VWAP toggles, per-session labels, per-session + Daily std-dev
-  band toggles.
+- **Display:** Daily and session VWAP toggles, main value-label toggles (all on by default), and
+  per-session + Daily std-dev band toggles (off by default).
 - **Asia / Europe / NY Session:** zone+hours dropdown, "Use custom hours" checkbox, custom hours field.
 - **Calculation:** std-dev multipliers, VWAP source (applies to all VWAPs), label offset.
 
 ## Notes
 
-- On futures, "24h/Daily" anchors to the exchange trading-day boundary (Globex reset), which is
-  the standard daily VWAP anchor.
+- "24h/Daily" resets when the chart's `time("1D")` changes. For CME futures with the full
+  electronic session, this follows the exchange trading-day boundary. It uses only available
+  chart bars: on an RTH-only chart it cannot include overnight volume. Its first loaded day
+  starts at the first available bar, so load the full trading day for a complete value.
+- Session VWAPs reset at each configured local opening even when a session-only chart omits
+  the intervening off-session bars. Custom overnight and 24-hour windows stay in one occurrence
+  across midnight and reset at their configured opening. IANA calendar dates handle DST and
+  month/year changes; no fixed 24-hour subtraction is used.
+- A session first loaded partway through starts from that available bar, matching the original
+  behavior. It is a partial-session value until a later complete session is available. These
+  calculations use whole chart bars; choose an intraday timeframe aligned to the session's
+  opening/closing times for accurate boundaries. Coarse bars are not split into intrabars.
+- VWAP requires reported volume. Zero-volume bars add no weight; the first positive-volume bar
+  initializes valid bands even after initial zero-volume bars. Missing volume makes that
+  occurrence's VWAP and bands unavailable until the next session reset. No unweighted or
+  invented-volume fallback is used; a feed without volume cannot produce VWAP.
+- Plots stack back-to-front as **Daily, Asia, Europe, New York**. Each family includes its
+  optional bands, with its main VWAP above those bands. All four main VWAPs and their labels are
+  enabled by default; the standard-deviation bands remain off until enabled.
+  The declaration uses `explicit_plot_zorder = true`, so Pine follows the written plot order.
+  Label contents/visibility and all source plot styles remain unchanged; this orders this
+  indicator's plots, not other chart indicators.
 - Std-dev bands are off by default; enable them under Display.
+
+## Reset-fix validation
+
+Version `2026.11.04-2200` fixes consecutive-session resets on RTH-only charts and initializes
+Daily VWAP on its first available bar. All three timezone sessions use the same occurrence rule.
+Version `2026.11.04-2230` adds the explicit complete-family plot order described above, while
+preserving each calculation and individual plot/label expression. Local tests port the Pine formulas and compare them with independent calendar and weighted-price
+oracles, including a captured TradingView NQ 30m dataset across the November 2026 DST change:
+
+```sh
+python3 -m unittest discover -s tests -v
+```
+
+These are formula/replay checks, not a Pine compilation or chart-rendering test. Compile the
+updated source in TradingView and verify the applied chart instance before treating runtime
+behavior as checked. Saved chart Style overrides after the plot reorder have not been visually
+verified.
 
 ## License
 
