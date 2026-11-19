@@ -29,8 +29,8 @@
 // ============================================================================
 
 //@version=6
-// VERSION 2026.11.19-2133
-indicator('RTH Session VWAP 2026.11.19-2133', 'RTH Session VWAP · 28.0', true, explicit_plot_zorder = true)
+// VERSION 2026.11.19-2142
+indicator('RTH Session VWAP 2026.11.19-2142', 'RTH Session VWAP', true, explicit_plot_zorder = true)
 
 // ---------- Functions ---------- //
 

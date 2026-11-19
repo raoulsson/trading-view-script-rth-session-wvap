@@ -1,8 +1,14 @@
 # Changelog
 
+## 2026.11.19-2142
+
+- Keep the short title as `RTH Session VWAP`; TradingView appends the saved script version to the
+  chart legend automatically. This displays one `29.0` suffix.
+- Retain all four main VWAP and label defaults as enabled. Remove and re-add an existing chart
+  instance to initialize it with current defaults when TradingView preserves its previous inputs.
+
 ## 2026.11.19-2133
 
-- Added the TradingView saved-script version (`28.0`) to the chart-visible short title.
 - Confirmed the saved script's four main VWAP and label defaults are enabled. Existing chart
   instances can retain their saved input values after a source update; remove and re-add the
   indicator to initialize it with the current defaults.
